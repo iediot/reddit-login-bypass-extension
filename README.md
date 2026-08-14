@@ -17,9 +17,10 @@
 
 ## Why
 
-Reading Reddit while logged out means a full-screen prompt over the post, a frozen page behind
-it, a second prompt in the sidebar, and an AI question block on every search. You came for one
-comment thread and got four interruptions.
+Reddit recently implemented a login requirement just for surfing their website. Every page 
+either kicks you out or spams you with pop-ups to log in or look at their AI-suggested similar 
+posts. You just came for one comment thread to get your information and get on with your day, 
+but they block you before you can even get to the second reply.
 
 Blocklist extensions handle this with a list of CSS selectors, which is a losing position:
 Reddit rewrites its frontend constantly, and every rewrite silently breaks the list. This one
