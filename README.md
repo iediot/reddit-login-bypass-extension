@@ -71,31 +71,5 @@ automatic rule. The page's own content is never a candidate.
 
 Picks are stored as a **selector path**, one selector per shadow level, resolved hop by hop:
 
-```
+```json
 ["shreddit-app", "faceplate-dialog", "div.prompt > button"]
-```
-
-Hashed class names are filtered out so a path survives a rebuild, and each path records how many
-elements it matched when it was stored — if it ever matches more, it has gone ambiguous and is
-refused rather than hiding a whole class of elements.
-
-## Build
-
-Open `reddit-login-bypass.xcodeproj` in Xcode and run. Then in Safari:
-
-1. **Settings ▸ Developer ▸ Allow Unsigned Extensions**
-2. **Settings ▸ Extensions** — enable it, and allow it on `reddit.com`
-
-Reload any Reddit tab that was already open.
-
-## Layout
-
-| Path | What |
-|---|---|
-| `Resources/content.js` | Rules, guards, scroll unlock, picker |
-| `Resources/deep-dom.js` | Shadow-piercing queries, hit-testing, selector paths |
-| `Resources/popup.*` | Toggles, Pick element, Clear picks |
-| `debug/inspect-overlay.js` | Console recon: what each pass sees on the current page |
-
-Permissions are `storage` and `scripting`, with host access limited to `reddit.com`. Nothing
-leaves the browser.
