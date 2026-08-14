@@ -40,7 +40,7 @@ next.
 ## How it works
 
 The content script runs at `document_start` on `reddit.com`, sweeps on every DOM mutation and
-route change, and hides — never removes — what it finds, tagging each element so a toggle can
+route change, and hides (never removes) what it finds, tagging each element so a toggle can
 put it straight back.
 
 Finding the wall is the hard part, because it hides from all the obvious tests. Four passes run
