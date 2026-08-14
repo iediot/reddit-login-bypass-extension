@@ -9,7 +9,6 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-sqircle&logo=javascript&logoColor=black)
 ![Safari](https://img.shields.io/badge/Safari-006CFF?style=flat-sqircle&logo=safari&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-000000?style=flat-sqircle&logo=apple&logoColor=white)
-![Manifest V3](https://img.shields.io/badge/Manifest-V3-4285F4?style=flat-sqircle&logo=googlechrome&logoColor=white)
 
 </div>
 
