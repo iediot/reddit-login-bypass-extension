@@ -98,10 +98,3 @@ Reload any Reddit tab that was already open.
 
 Permissions are `storage` and `scripting`, with host access limited to `reddit.com`. Nothing
 leaves the browser.
-
-## Roadmap
-
-- [ ] `old.reddit.com` — untested; its markup differs
-- [ ] Per-site rules, so the picker is useful beyond Reddit
-- [ ] A debug toggle in the popup instead of a storage key
-# reddit-login-bypass-extension
