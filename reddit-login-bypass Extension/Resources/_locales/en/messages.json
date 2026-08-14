@@ -1,0 +1,14 @@
+{
+    "extension_name": {
+        "message": "Reddit Login Bypass",
+        "description": "The display name for the extension."
+    },
+    "extension_description": {
+        "message": "Hides Reddit's login wall automatically, plus optional clean-ups for the sidebar login prompt and the \"People also ask about\" block.",
+        "description": "Description of what the extension does."
+    },
+    "action_title": {
+        "message": "Reddit Login Bypass settings",
+        "description": "Tooltip for the toolbar button."
+    }
+}

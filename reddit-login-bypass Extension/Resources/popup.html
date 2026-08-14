@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+    <script type="module" src="popup.js"></script>
+</head>
+<body>
+    <h1>Reddit Login Bypass</h1>
+
+    <ul class="rules">
+        <li>
+            <label>
+                <input type="checkbox" id="loginWall" checked>
+                <span class="title">Login wall</span>
+                <span class="detail">The full-screen prompt that blocks the page and freezes scrolling.</span>
+            </label>
+        </li>
+        <li>
+            <label>
+                <input type="checkbox" id="sidebarLoginPrompt" checked>
+                <span class="title">Sidebar login prompt</span>
+                <span class="detail">Left rail only, and never a block that lists communities.</span>
+            </label>
+        </li>
+        <li>
+            <label>
+                <input type="checkbox" id="peopleAlsoAsk" checked>
+                <span class="title">“People also ask about”</span>
+                <span class="detail">The AI question block on search results.</span>
+            </label>
+        </li>
+    </ul>
+
+    <div class="actions">
+        <button id="pick" type="button">Pick element</button>
+        <button id="restoreAll" type="button">Clear picks</button>
+    </div>
+    <p class="detail hotkey">Picking stays on until Esc. Also toggled with ⌃⇧H on the page.</p>
+    <p id="status" class="detail" role="status"></p>
+</body>
+</html>

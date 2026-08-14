@@ -1,0 +1,94 @@
+:root {
+    color-scheme: light dark;
+    --fg: #1c1c1e;
+    --muted: #6b6b70;
+    --line: #00000018;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fg: #f2f2f7;
+        --muted: #9a9aa0;
+        --line: #ffffff20;
+    }
+}
+
+body {
+    width: 268px;
+    margin: 0;
+    padding: 12px 14px 10px;
+    font-family: system-ui;
+    font-size: 13px;
+    color: var(--fg);
+}
+
+h1 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rules {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rules li + li {
+    margin-top: 10px;
+}
+
+label {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 8px;
+    align-items: center;
+}
+
+input[type="checkbox"] {
+    grid-row: span 2;
+    align-self: start;
+    margin: 1px 0 0;
+}
+
+.title {
+    font-weight: 500;
+}
+
+.detail {
+    grid-column: 2;
+    color: var(--muted);
+    line-height: 1.35;
+}
+
+.actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+}
+
+button {
+    flex: 1;
+    font: inherit;
+    padding: 3px 2px;
+    white-space: nowrap;
+}
+
+p.detail {
+    margin: 0;
+}
+
+.hotkey {
+    margin-top: 8px;
+    font-size: 11px;
+}
+
+#status {
+    margin-top: 6px;
+}
+
+#status:empty {
+    display: none;
+}

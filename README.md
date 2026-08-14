@@ -1,8 +1,8 @@
 <div align="center">
 
-<img width="128" height="128" alt="Reddit Bypass Login" src="assets/logo.png" />
+<img width="128" height="128" alt="Reddit Login Bypass" src="assets/logo.png" />
 
-# Reddit Bypass Login
+# Reddit Login Bypass
 
 **A Safari extension that clears Reddit's login wall out of the way, automatically**
 
@@ -80,7 +80,7 @@ refused rather than hiding a whole class of elements.
 
 ## Build
 
-Open `reddit-bypass-login.xcodeproj` in Xcode and run. Then in Safari:
+Open `reddit-login-bypass.xcodeproj` in Xcode and run. Then in Safari:
 
 1. **Settings ▸ Developer ▸ Allow Unsigned Extensions**
 2. **Settings ▸ Extensions** — enable it, and allow it on `reddit.com`
