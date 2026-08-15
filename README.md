@@ -88,21 +88,3 @@ Picks are stored as a **selector path**, one selector per shadow level, resolved
 Hashed class names are filtered out so a path survives a rebuild, and each path records how many
 elements it matched when it was stored — if it ever matches more, it has gone ambiguous and is
 refused rather than hiding a whole class of elements.
-
-## Build
-
-Open `reddit-login-bypass.xcodeproj` in Xcode and run. Then in Safari:
-
-1. **Settings ▸ Developer ▸ Allow Unsigned Extensions**
-2. **Settings ▸ Extensions** — enable it, and allow it on `reddit.com`
-
-Reload any Reddit tab that was already open — a tab that is already loaded keeps running the
-previous content script until it does.
-
-Two things worth knowing while working on it: *Allow Unsigned Extensions* switches itself off
-every time Safari restarts, so quitting Safari disables the extension until you re-tick it; and
-a change to `manifest.json` needs the extension toggled off and on, because Safari caches the
-manifest and re-checks permissions only then. Script changes need neither — just a tab reload.
-
-Permissions are `storage` and `scripting`, with host access limited to `reddit.com`. Nothing
-leaves the browser.
