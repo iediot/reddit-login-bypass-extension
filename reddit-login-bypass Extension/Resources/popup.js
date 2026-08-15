@@ -1,8 +1,4 @@
-//
-//  popup.js
-//  Toggles are written to storage.local; the content script watches for the
-//  change and applies or undoes the rule live, so nothing needs reloading.
-//
+// popup.js — toggles write to storage.local; the content script applies them live.
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -16,20 +12,28 @@ const NOT_RUNNING =
 
 const UNREACHABLE = "Could not reach this page. Reload it (⌘R) and try again.";
 
+const NOT_REDDIT = "Only runs on reddit.com — nothing to do on this page.";
+
+const REDDIT_HOST_RE = /(^|\.)reddit\.com$/i;
+
+function isRedditUrl(url) {
+    try {
+        return REDDIT_HOST_RE.test(new URL(url).hostname);
+    } catch {
+        return false;
+    }
+}
+
 const statusEl = document.getElementById("status");
 const pickButton = document.getElementById("pick");
 
 const setStatus = (text) => { statusEl.textContent = text; };
 const setPicking = (active) => { pickButton.textContent = active ? "Stop picking" : "Pick element"; };
 
-// Talk to the page, and repair it if nobody answers. A tab loaded before the
-// extension was rebuilt runs a stale content script (or none at all, if the
-// permission was granted after load); rather than asking the user to reload,
-// inject the current scripts and ask again. Injection over an existing copy is
-// harmless — the content script detects itself and takes over.
 // Why the last send() could not reach the page, for the status line.
 let lastFailure = "";
 
+// Talks to the page, and re-injects the scripts if a stale copy does not answer.
 async function send(message) {
     lastFailure = "";
     const [tab] = await api.tabs.query({ active: true, currentWindow: true });
@@ -37,12 +41,17 @@ async function send(message) {
 
     const ask = () => api.tabs.sendMessage(tab.id, message).catch(() => undefined);
 
+    // Messaging is safe anywhere: it only reaches our own content script.
     let result = await ask();
     if (result !== undefined) return result;
 
-    // Nobody answered: inject the current scripts and ask again.
+    // Injecting is not: Safari can grant every site, and this ran on any open tab.
+    if (!isRedditUrl(tab.url ?? "")) {
+        lastFailure = NOT_REDDIT;
+        return undefined;
+    }
+
     if (!api.scripting) {
-        // The permission was added after this extension was last approved.
         lastFailure = "Safari has not granted the scripting permission yet — " +
                       "toggle the extension off and on in Safari ▸ Settings ▸ Extensions.";
         return undefined;
@@ -65,13 +74,15 @@ async function send(message) {
     return result;
 }
 
-async function activeTabId() {
+async function activeRedditTabId() {
     const [tab] = await api.tabs.query({ active: true, currentWindow: true });
-    return tab?.id;
+    return isRedditUrl(tab?.url ?? "") ? tab?.id : undefined;
 }
 
 const unreachable = () =>
-    lastFailure ? `Could not reach this page: ${lastFailure}` : UNREACHABLE;
+    lastFailure === NOT_REDDIT ? NOT_REDDIT
+        : lastFailure ? `Could not reach this page: ${lastFailure}`
+        : UNREACHABLE;
 
 async function load() {
     const stored = await api.storage.local.get();
@@ -87,12 +98,10 @@ async function load() {
             await api.storage.local.set({ [id]: input.checked });
             setStatus(input.checked ? "Rule on." : "Rule off — items restored.");
 
-            // A live content script applies this instantly through
-            // storage.onChanged. If none is listening, reload the tab so the
-            // setting takes effect without the user working out why it did not.
+            // Nothing listening: reload, so the setting visibly takes effect.
             const applied = await send({ type: "rescan" });
             if (applied === undefined) {
-                const tabId = await activeTabId();
+                const tabId = await activeRedditTabId();
                 if (tabId) {
                     setStatus("Applied — reloading the page…");
                     api.tabs.reload(tabId);
@@ -101,14 +110,16 @@ async function load() {
         });
     }
 
-    // Reflect whether picking is already running in this tab, and surface a
-    // stale content script before the user hits a button that silently no-ops.
     try {
         const status = await send({ type: "status" });
-        if (!status) setStatus(unreachable());
-        else setPicking(status.picking);
+        if (status) setPicking(status.picking);
+        else if (lastFailure === NOT_REDDIT) {
+            // Toggles are settings and still work; only the picker needs a page.
+            pickButton.disabled = true;
+            setStatus(NOT_REDDIT);
+        } else setStatus(unreachable());
     } catch {
-        // Not a Reddit tab; the buttons will say so if used.
+        // No active tab; the buttons will say so if used.
     }
 }
 
@@ -130,13 +141,10 @@ pickButton.addEventListener("click", async () => {
     }
 });
 
-// Unstick everything on the page, whatever hid it, and drop every stored pick.
 document.getElementById("restoreAll").addEventListener("click", async () => {
     setStatus("");
 
-    // Drop the key outright rather than overwriting it, then read it back:
-    // a pick that survives this is a storage problem, not a page problem, and
-    // the count says which it was.
+    // Dropped outright and read back: a pick that survives is a storage problem.
     const { customRules: before = [] } = await api.storage.local.get({ customRules: [] });
     await api.storage.local.remove("customRules");
     await api.storage.local.set({ customRules: [] });
@@ -156,10 +164,5 @@ document.getElementById("restoreAll").addEventListener("click", async () => {
         setStatus(`${cleared} ${NOT_RUNNING}`);
     }
 });
-
-// No re-scan button: the content script already sweeps on every mutation, on
-// scroll, on route change and on a retry ladder after load, so a manual scan
-// can only repeat what has already happened. The message handler is still there
-// for `__redditLoginBypass__.sweep()` from the console.
 
 load();

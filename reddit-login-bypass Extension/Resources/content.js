@@ -1,18 +1,4 @@
-//
-//  content.js
-//  Runs automatically on reddit.com and hides what Reddit puts between you and
-//  the page. Two rules, each switchable from the toolbar popup, plus anything
-//  you point at by hand with the picker.
-//
-//  Three principles hold the whole thing together:
-//
-//  1. Judge behaviour and copy, not class names. Reddit rewrites its frontend
-//     constantly; a selector list rots, while "continue with apple" and "covers
-//     the viewport and swallows clicks" do not.
-//  2. Look through shadow roots. Reddit renders inside <shreddit-*> and
-//     <faceplate-*> custom elements, where ordinary DOM queries see nothing.
-//  3. Hide, never remove, and record who hid what — so any of it can be undone.
-//
+// content.js — hides Reddit's login prompts, judged by behaviour and copy.
 
 (() => {
     "use strict";
@@ -23,19 +9,26 @@
     const STATE_KEY = "__redditLoginBypass__";
     const LOG_PREFIX = "[reddit-login-bypass]";
 
-    // Bumped whenever the rules or the message protocol change. A tab loaded
-    // before a rebuild keeps running the previous script until it is reloaded;
-    // this lets a newer injection recognise an older one and take over.
-    const VERSION = 23;
+    // Bumped with the rules, so a newer injection can take over a stale tab.
+    const VERSION = 24;
 
     if (!dom) return console.error(LOG_PREFIX, "deep-dom.js did not load");
 
+    // Reddit only: elsewhere the rules read a page's own fixed layout as an overlay.
+    const ON_REDDIT = /(^|\.)reddit\.com$/i.test(location.hostname);
+
     const previous = globalThis[STATE_KEY];
-    if (previous?.version === VERSION) return previous.sweep("re-injected");
     if (previous) {
-        // Stand the older build down. Without this its observer and window
-        // listeners keep running alongside ours, sweeping with the old rules.
+        if (previous.version === VERSION && ON_REDDIT) return previous.sweep("re-injected");
+        // Otherwise its observer and listeners would run alongside ours.
         try { (previous.teardown ?? previous.disarm)?.call(previous); } catch {}
+    }
+
+    if (!ON_REDDIT) {
+        // Put back anything a build without the check above hid here.
+        try { previous?.restore?.(); } catch {}
+        delete globalThis[STATE_KEY];
+        return;
     }
 
     const {
@@ -43,25 +36,20 @@
         deepElementFromPoint, parentOf, pathFor, resolvePath, invalidateRootCache,
     } = dom;
 
-    // =====================================================================
-    // Configuration
-    // =====================================================================
+    // --- Configuration ---
 
     const CONFIG = {
-        // A layer covering this much of the viewport is obstructing...
         MIN_COVERAGE: 0.30,
-        // ...or this much, if its copy also reads as a login prompt.
+        // Lower bar when the copy also reads as a login prompt.
         MIN_COVERAGE_WITH_LOGIN_TEXT: 0.08,
-        // Soft signal: a low z-index is forgiven when the copy is convincing,
-        // because a top-layer <dialog> reports no z-index at all.
+        // Soft signal: a top-layer <dialog> reports no z-index at all.
         MIN_Z_INDEX: 100,
         MIN_OPACITY: 0.05,
         // Where to ask "what is on top here?", as viewport fractions.
         PROBE_POINTS: [[0.5, 0.5], [0.5, 0.28], [0.5, 0.72], [0.22, 0.5], [0.78, 0.5]],
         MAX_ANCESTOR_CLIMB: 14,
         SWEEP_THROTTLE_MS: 150,
-        // A rail is a column no wider than this. A sanity bound only — the
-        // page- and feed-content guards do the real work.
+        // Sanity bounds for a rail; the content guards do the real work.
         RAIL_MAX_WIDTH: 0.60,
         RAIL_MIN_HEIGHT: 60,
         // How far to look inside an element for what it actually paints.
@@ -70,7 +58,7 @@
     };
 
     const DEFAULTS = {
-        loginPrompts: true,   // the wall over the page and the panel beside it
+        loginPrompts: true,
         peopleAlsoAsk: true,
         customRules: [],
         debug: false,
@@ -90,9 +78,7 @@
     const warn = (...args) => console.warn(LOG_PREFIX, ...args);
     const fail = (...args) => console.error(LOG_PREFIX, ...args);
 
-    // =====================================================================
-    // What things look like
-    // =====================================================================
+    // --- What things look like ---
 
     // Broad: does this block read as a login prompt at all?
     const LOGIN_TEXT_RE =
@@ -102,8 +88,7 @@
     const LOGIN_ACTION_RE =
         /(\blog ?in\b|\bsign ?in\b|\bsign ?up\b|create (a |an )?account|already have an account|continue with |sign in with )/i;
 
-    // Specific enough to identify a prompt on its own, wherever it sits and
-    // whatever it is built from. Verified against the live wall.
+    // Enough to identify a prompt on its own. Verified against the live wall.
     const LOGIN_SIGNATURE_RE =
         /(join the most real place on the internet|i already have an account|continue with (apple|google|email|phone)|sign in with apple|reddit is better when|already a redditor)/i;
 
@@ -123,8 +108,6 @@
         ].join(","),
 
         // Specific enough to be the wall on sight, no copy needed.
-        // #desktop-dynamic-upsell-dialog is Reddit's own id for it, and it
-        // carries no text of its own — everything is in the <dialog> below it.
         knownWall: [
             '[id*="upsell" i]',
             '[id*="login" i][id*="dialog" i]',
@@ -135,14 +118,10 @@
             "shreddit-signup-drawer",
         ].join(","),
 
-        // The card sitting on the wall's backdrop, a separate element from it.
-        // <rpl-modal-card> is Reddit's design-system modal, used for all sorts
-        // of things, and its shadow root is closed so there is no text to judge
-        // it by — so it counts only when a known wall is present alongside it.
+        // Sibling of the backdrop, closed shadow root — counts only beside a known wall.
         wallCard: 'rpl-modal-card, [class*="modal-card" i]',
 
-        // The login flow you get by pressing "Log In" yourself. Automatic rules
-        // never touch it: hiding it would break signing in.
+        // The login you open yourself. Hiding it would break signing in.
         userInitiatedAuth: "auth-flow-manager, [id*='auth-flow' i]",
 
         clickable: [
@@ -150,8 +129,7 @@
             "faceplate-tracker", '[data-testid*="login" i]', '[data-testid*="signup" i]',
         ].join(","),
 
-        // A rail's own container, so a hit takes the whole panel rather than
-        // the prompt inside it.
+        // A rail's own container, so a hit takes the panel not the prompt inside.
         railHost: '[id*="sidebar" i], [class*="sidebar" i], aside, [id*="rail" i]',
 
         header: 'header, [role="banner"], shreddit-header, shreddit-nav',
@@ -163,21 +141,14 @@
 
         heading: 'h1,h2,h3,h4,h5,[role="heading"],summary,legend',
 
-        // Real page material. Also the boundary an expanding selection stops at.
+        // Real page material, and the boundary an expanding selection stops at.
         post: "shreddit-post, article, [data-testid='post-container'], [slot*='post-media'], [slot='post-image']",
         communityLink: 'a[href*="/r/"], a[href*="/user/"]',
         commentLink: 'a[href*="/comments/"]',
         loginLink: 'a[href*="/login"], a[href*="/register"]',
     };
 
-    // =====================================================================
-    // Measuring
-    //
-    // Every geometric question goes through effectiveRect. An element's own
-    // border box lies when its children do the painting: Reddit's wall host is
-    // a 0×0 div rendering a full-screen prompt from position:fixed children, so
-    // measuring the host alone made every rule discard it as invisible.
-    // =====================================================================
+    // --- Measuring ---
 
     const children = (el) => [...(el.shadowRoot?.children ?? []), ...(el.children ?? [])];
 
@@ -190,6 +161,7 @@
             Math.max(a.right, b.right) - left, Math.max(a.bottom, b.bottom) - top);
     }
 
+    // The wall's host is a 0×0 div painting from fixed children, so measure what it paints.
     function effectiveRect(el, depth = CONFIG.MEASURE_DEPTH) {
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) return rect;
@@ -214,8 +186,7 @@
 
     const coverageOf = (el) => coverage(effectiveRect(el));
 
-    // Same reasoning as effectiveRect, for position: the host is often static
-    // while what it renders inside is fixed.
+    // Same reasoning as effectiveRect: the host is static, its children fixed.
     function rendersFixedLayer(el, depth = 5) {
         const position = getComputedStyle(el).position;
         if (position === "fixed" || position === "sticky") return true;
@@ -229,10 +200,7 @@
         return false;
     }
 
-    // NOTE: `offsetParent !== null` is no use here — it is null for every
-    // position:fixed element, which is exactly what we are looking for. Nor is
-    // checkVisibility(), which answers for the element's own box rather than
-    // for what it paints.
+    // offsetParent is null for every fixed element; checkVisibility() answers for the box.
     function isVisible(el) {
         if (!(el instanceof Element) || !el.isConnected) return false;
         const cs = getComputedStyle(el);
@@ -252,13 +220,7 @@
         return best;
     }
 
-    // =====================================================================
-    // Guards
-    //
-    // What must never be hidden, and where an expanding selection has to stop.
-    // These are the difference between a useful extension and one that eats
-    // the page, so they are applied by every rule without exception.
-    // =====================================================================
+    // --- Guards: what must never be hidden, applied by every rule ---
 
     function containsPageContent(el) {
         if (el === document.body || el === document.documentElement) return true;
@@ -281,21 +243,15 @@
         return light + shadow;
     }
 
-    // A block listing communities is not a login prompt, even when a "log in"
-    // link happens to sit inside it. This is the guard that keeps the rail rule
-    // off your subreddit list.
+    // Keeps the rail rule off your subreddit list.
     const listsCommunities = (el) => countWithin(el, SELECTORS.communityLink) >= 2;
 
-    // Real page material: posts, comments, community links. A prompt holds none
-    // of it — only its own copy and a couple of policy links.
     function containsFeedContent(el) {
         return listsCommunities(el) ||
             countWithin(el, SELECTORS.post) > 0 ||
             countWithin(el, SELECTORS.commentLink) >= 2;
     }
 
-    // Post media is never a login prompt, so no heuristic may take the picture
-    // you were looking at.
     function isPostMedia(el) {
         if (/^(img|video|picture|source|canvas|figure)$/i.test(el.tagName)) return true;
         return !!el.closest?.(SELECTORS.post);
@@ -314,9 +270,7 @@
         return LOGIN_TEXT_RE.test(deepText(el));
     }
 
-    // Narrow column that sits in the layout rather than painting a layer over
-    // the page. Which side it is on is not a signal: Reddit's right-hand signup
-    // panel is a <div id="left-sidebar-container">.
+    // Which side it sits on is no signal: the right-hand panel is #left-sidebar-container.
     function isRailPrompt(el) {
         const rect = effectiveRect(el);
         if (rect.width > window.innerWidth * CONFIG.RAIL_MAX_WIDTH) return false;
@@ -324,21 +278,14 @@
         return !rendersFixedLayer(el);
     }
 
-    // =====================================================================
-    // Selection
-    //
-    // A hit is usually an inner fragment — a heading, a button, one line of
-    // copy. These climb from it to the block a person would call "the prompt".
-    // =====================================================================
+    // --- Selection: climbing from a hit to the block a person would call the prompt ---
 
     const outermost = (elements) => {
         const all = [...new Set(elements)];
         return all.filter((el) => !all.some((other) => other !== el && other.contains(el)));
     };
 
-    // Stopping conditions are structural, never textual: an earlier version
-    // capped on text growth, which stopped one level short and left the rest of
-    // the prompt on screen.
+    // Structural, never textual: capping on text growth stopped one level short.
     function expandToPrompt(el) {
         let node = el, best = el, depth = 0;
 
@@ -346,8 +293,8 @@
             const parent = parentOf(node);
             if (!parent || parent === document.body || parent === document.documentElement) break;
             if (parent.hasAttribute?.(MARK_ATTR)) break;
-            if (containsPageContent(parent)) break;   // reached the page itself
-            if (containsFeedContent(parent)) break;   // reached real material
+            if (containsPageContent(parent)) break;
+            if (containsFeedContent(parent)) break;
             if (coverageOf(parent) > 0.75) break;
             best = parent;
             node = parent;
@@ -355,8 +302,7 @@
         return best;
     }
 
-    // The rail equivalent: climb while the ancestor is still a self-contained
-    // card, and prefer the panel's own container when one is on the way up.
+    // The rail equivalent, preferring the panel's own container on the way up.
     function expandToRailPanel(el) {
         let node = el, best = el, depth = 0;
         while (node && depth++ < CONFIG.MAX_ANCESTOR_CLIMB) {
@@ -370,16 +316,8 @@
         return best;
     }
 
-    // =====================================================================
-    // Detection strategies
-    //
-    // Four of them, run together and merged. Each catches something the others
-    // structurally cannot, which is the whole reason there are four: the wall
-    // has appeared as a fixed layer, as a modal <dialog> in the top layer, as a
-    // 0×0 shadow host, and as a panel in the layout — sometimes two at once.
-    // =====================================================================
+    // --- Detection: five merged passes, each catching what the others cannot ---
 
-    // 1. Whatever is topmost at the probe points and obstructs the viewport.
     function isObstructingLayer(el) {
         if (!(el instanceof Element)) return false;
         if (el === document.body || el === document.documentElement) return false;
@@ -413,7 +351,6 @@
         return hits;
     }
 
-    // 2. Containers known by identity, plus the card that rides with them.
     function findKnownWall() {
         const hits = [];
         let present = false;
@@ -432,8 +369,7 @@
             }
         }
 
-        // A modal <dialog>'s box may be small and its backdrop is a
-        // pseudo-element, so coverage alone would never catch it.
+        // A modal <dialog>'s box may be small and its backdrop a pseudo-element.
         for (const el of deepQueryAll(SELECTORS.dialog)) {
             if (!isVisible(el) || containsPageContent(el)) continue;
             if (!looksLikeLoginPrompt(el)) continue;
@@ -443,8 +379,7 @@
         return hits;
     }
 
-    // 3. The prompt's own words, anywhere on the page. Markup churns; copy does
-    //    not. This is the pass that survives a rebuild.
+    // The pass that survives a rebuild: markup churns, copy does not.
     function findByLoginSignature() {
         const hits = [];
         for (const el of deepFindText(LOGIN_SIGNATURE_RE)) {
@@ -458,20 +393,15 @@
         return hits;
     }
 
-    // 4. Last resort, and the only one that survives a closed shadow root:
-    //    whatever is topmost mid-screen and is not part of the page is, by
-    //    definition, covering it. Uses the light-DOM hit test deliberately —
-    //    it retargets to the shadow host, and the host is all that can be seen
-    //    or hidden when the root is closed.
+    // Last resort, and the only pass that survives a closed shadow root.
     function findTopmostOverlay() {
-        // With no content root there is no way to tell an overlay from the page.
         if (!document.querySelector(SELECTORS.contentRoot)) return [];
 
         const hits = [];
         for (const [fx, fy] of CONFIG.PROBE_POINTS) {
             const top = document.elementsFromPoint(window.innerWidth * fx, window.innerHeight * fy)[0];
             if (!top || top === document.body || top === document.documentElement) continue;
-            if (isInsidePageContent(top)) continue;   // ordinary page under the cursor
+            if (isInsidePageContent(top)) continue;
             if (top.hasAttribute(MARK_ATTR) || top.id === PICKER_ID) continue;
 
             const block = expandToPrompt(top);
@@ -484,8 +414,7 @@
         return hits;
     }
 
-    // 5. Prompts living in a rail: found through their buttons, since a rail
-    //    prompt often has no copy of its own worth matching.
+    // Found through their buttons: a rail prompt often has no copy worth matching.
     function findRailPrompts() {
         const hits = [];
 
@@ -503,7 +432,6 @@
             hits.push(block);
         }
 
-        // And by copy, expanded to the panel rather than the prompt inside it.
         for (const el of deepFindText(LOGIN_SIGNATURE_RE)) {
             if (containsPageContent(el)) continue;
             const block = expandToRailPanel(expandToPrompt(el));
@@ -516,14 +444,9 @@
         return hits;
     }
 
-    // =====================================================================
-    // Rules
-    // =====================================================================
+    // --- Rules ---
 
-    // Everything pushing you to log in: the wall over the page and the panel
-    // beside it. These were once two rules with two toggles, and telling them
-    // apart reliably proved harder than it was worth — an element each rule
-    // skipped as "the other one's" was hidden by neither.
+    // One rule: telling the wall and the rail prompt apart cost more than it was worth.
     function findLoginPrompts() {
         return outermost([
             ...findObstructingLayers(),
@@ -543,8 +466,7 @@
 
         for (const heading of deepQueryAll(SELECTORS.heading)) {
             if (!PEOPLE_ALSO_ASK_RE.test(deepText(heading, 200))) continue;
-            // Climb to the section owning the heading, stopping before anything
-            // that also holds real results.
+            // Climb to the section owning the heading, stopping before real results.
             let node = heading, best = heading, depth = 0;
             while (node && depth++ < CONFIG.MAX_ANCESTOR_CLIMB) {
                 const parent = parentOf(node);
@@ -560,21 +482,16 @@
         return outermost(hits);
     }
 
-    // Which pick hid which element, so a removed pick can free exactly what it
-    // hid without re-resolving a selector path that may since have gone stale.
+    // Which pick hid which element, so removing one frees exactly what it hid.
     const hiddenBy = new WeakMap();
 
     function findCustom() {
         const hits = [];
         for (const rule of settings.customRules ?? []) {
-            // Instances already hidden do not count towards ambiguity: Reddit
-            // mounts a replacement after each hide, and counting the old ones
-            // made the guard below disable the rule as soon as one appeared.
+            // Already-hidden instances do not count: Reddit mounts a replacement after each hide.
             const found = resolvePath(rule.path).filter((el) => !el.hasAttribute(MARK_ATTR));
 
-            // A path matching more than it did when stored has gone ambiguous:
-            // the page was rebuilt around it and it now catches a whole class
-            // of elements. One stray pick would hide every post image.
+            // More matches than when stored means the path has gone ambiguous.
             if (rule.count && found.length > rule.count) {
                 log("skipping ambiguous pick", rule.label, `${found.length} matches, stored ${rule.count}`);
                 continue;
@@ -595,12 +512,9 @@
         { id: "custom", find: findCustom, always: true },
     ];
 
-    // =====================================================================
-    // Hiding and restoring
-    // =====================================================================
+    // --- Hiding and restoring ---
 
-    // Held directly rather than found again by walking the DOM: the walk has a
-    // node budget, and an element it misses could never be restored by anything.
+    // Held directly: the DOM walk has a budget, and what it misses could never be restored.
     const hiddenElements = new Set();
 
     function hiddenMatching(predicate) {
@@ -616,9 +530,7 @@
         return [...out];
     }
 
-    // A top-layer dialog keeps painting — backdrop and all — even with an
-    // ancestor set to display:none, and its ::backdrop is a pseudo-element no
-    // rule can reach. Closing is the only thing that removes both.
+    // A top-layer dialog paints through display:none, so it has to be closed.
     function closeDialogsWithin(el, depth = CONFIG.MEASURE_DEPTH) {
         if (el.tagName === "DIALOG" && el.open) { try { el.close(); } catch {} }
         if (typeof el.hidePopover === "function" && el.matches?.(":popover-open")) {
@@ -692,8 +604,7 @@
             for (const attr of SCROLL_LOCK_ATTRS) el.removeAttribute(attr);
         }
 
-        // Inline and !important as well as the stylesheet below, because a page
-        // CSP can refuse a stylesheet a content script adds.
+        // Inline as well, because a page CSP can refuse a stylesheet we add.
         html?.style.setProperty("overflow", "auto", "important");
         if (body) {
             body.style.setProperty("overflow", "visible", "important");
@@ -728,9 +639,7 @@
         document.body?.style.removeProperty("position");
     }
 
-    // =====================================================================
-    // Sweeping
-    // =====================================================================
+    // --- Sweeping ---
 
     const counts = { loginPrompts: 0, peopleAlsoAsk: 0, custom: 0 };
     let lastSweepAt = 0, sweepScheduled = false, lastHref = location.href, observer = null;
@@ -750,8 +659,7 @@
                 continue;
             }
 
-            // Picks are exempt from the media and auth guards: hiding one of
-            // those by hand is a deliberate choice, not a misfire.
+            // Picks skip the media and auth guards: hiding one by hand is a choice.
             const allowed = found.filter((el) =>
                 !el.hasAttribute(KEEP_ATTR) &&
                 (rule.id === "custom" || (!isPostMedia(el) && !isUserInitiatedAuth(el))));
@@ -784,9 +692,7 @@
         }, wait);
     }
 
-    // Every listener is registered through this, so teardown can remove all of
-    // them. A takeover that leaves listeners behind means two builds sweeping
-    // the same page with different rules.
+    // Everything registers through on(), so teardown can remove all of it.
     const unsubscribes = [];
 
     function on(target, type, handler, options) {
@@ -814,9 +720,7 @@
         });
         observer.observe(document.documentElement, { childList: true, subtree: true });
 
-        // history.pushState cannot be patched from here: a content script's
-        // isolated world has its own `history`, so the page's calls never reach
-        // a patch. The href check above plus these events cover SPA navigation.
+        // history.pushState cannot be patched from an isolated world; these cover SPA nav.
         const onNav = () => {
             lastHref = location.href;
             invalidateRootCache();
@@ -827,8 +731,7 @@
         // The wall is often raised on scroll depth rather than on navigation.
         on(window, "scroll", () => scheduleSweep("scroll"), { passive: true });
 
-        // Works even when the toolbar button does not — a stale content script
-        // in an old tab, say.
+        // Works even when the toolbar button does not, in a stale tab say.
         on(window, "keydown", (event) => {
             if (event.ctrlKey && event.shiftKey && (event.key === "H" || event.key === "h")) {
                 event.preventDefault();
@@ -849,21 +752,13 @@
         api.runtime.onMessage.removeListener(onMessage);
     }
 
-    // =====================================================================
-    // Picker
-    //
-    // Safari's Hide Distracting Items, automated: point at something, store a
-    // selector path for it, re-apply that path on every visit.
-    // =====================================================================
+    // --- Picker: point at something, store a selector path, re-apply it ---
 
     let picker = null;
 
-    // Styled through CSSOM rather than an injected stylesheet: Reddit's CSP can
-    // refuse a <style> a content script adds, which would leave the highlight
-    // and the hint invisible. Inline .style is not subject to it.
+    // CSSOM, not a stylesheet: Reddit's CSP can refuse a <style> we add.
     const PICKER_STYLES = {
-        // The reset undoes the UA styles a popover carries (border, padding,
-        // background, auto margins).
+        // The reset undoes the UA styles a popover carries.
         host: "position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;" +
               "margin:0;padding:0;border:0;background:transparent;overflow:visible;" +
               "z-index:2147483647;pointer-events:none;",
@@ -880,9 +775,7 @@
     const HINT_TEXT =
         "Click to hide  ·  ⇧ or ↑ wider  ·  ↓ narrower  ·  ⌥ reach behind  ·  Esc to finish";
 
-    // A modal opened with showModal() lives in the top layer, above every
-    // z-index there is. A manual popover joins that layer without making the
-    // page inert, so the highlight stays on top and the page stays clickable.
+    // A manual popover joins the top layer without making the page inert.
     function raiseToTopLayer(el) {
         try {
             el.setAttribute("popover", "manual");
@@ -892,10 +785,7 @@
         }
     }
 
-    // Hovering lands on whatever node owns the pixel — a text span, an SVG
-    // path, a wrapper that adds nothing. Climb to the smallest ancestor that is
-    // a block in its own right, so the highlight snaps to the button or the
-    // card instead of to a fragment of text.
+    // Hovering lands on whatever owns the pixel, so climb to the smallest real block.
     function snapToBlock(el) {
         let node = el, depth = 0;
         if (node instanceof SVGElement && node.ownerSVGElement) node = node.ownerSVGElement;
@@ -939,9 +829,7 @@
         document.documentElement.appendChild(host);
         raiseToTopLayer(host);
 
-        // The popup closes itself to get out of the way, which leaves the page
-        // unfocused — without this no keydown arrives until the first click and
-        // the arrow keys look dead for the first pick.
+        // The popup closes itself, leaving the page unfocused and the arrow keys dead.
         try {
             window.focus();
             host.tabIndex = -1;
@@ -954,7 +842,19 @@
         let widening = false;
         let hiddenHere = 0;
 
+        // Checked by every handler, so a listener outliving cleanup cannot eat clicks.
+        let live = true;
+
+        // A highlight lost to a DOM replacement leaves a picker eating clicks invisibly.
+        const ensureHost = () => {
+            if (host.isConnected) return;
+            document.documentElement.appendChild(host);
+            raiseToTopLayer(host);
+        };
+
         const paint = () => {
+            if (!live) return;
+            ensureHost();
             if (!target?.isConnected) {
                 box.style.width = "0px";
                 box.style.height = "0px";
@@ -968,8 +868,7 @@
             box.style.borderRadius = getComputedStyle(target).borderRadius || "4px";
         };
 
-        // Say what a click will take, so an over- or under-shooting selection is
-        // visible before it happens rather than after.
+        // Say what a click will take, so a bad selection shows before it happens.
         const setTarget = (el) => {
             target = el;
             paint();
@@ -980,9 +879,7 @@
                 "↑ wider  ↓ narrower  ·  Esc to finish";
         };
 
-        // ⌥ reaches past whatever is on top: a full-viewport overlay is
-        // returned by hit-testing at every point on the screen, which otherwise
-        // makes everything underneath it impossible to pick.
+        // ⌥ reaches past a full-viewport overlay, which the hit test returns everywhere.
         const pointTarget = (x, y, behind) => {
             if (!behind) return deepElementFromPoint(x, y);
             const stack = document.elementsFromPoint(x, y).filter((el) => !host.contains(el));
@@ -990,9 +887,9 @@
         };
 
         const onMove = (event) => {
+            if (!live) return;
             const el = pointTarget(event.clientX, event.clientY, event.altKey);
-            // ⇧ rides on the mouse event, so widening works with or without
-            // keyboard focus — unlike the arrow keys.
+            // ⇧ rides on the mouse event, so widening works without focus.
             if (el && el === hovered && event.shiftKey !== widening) {
                 widening = event.shiftKey;
                 setTarget(widening ? (parentOf(base) ?? base) : base);
@@ -1001,8 +898,6 @@
             if (!el || el === hovered || host.contains(el)) return;
             widening = event.shiftKey;
             hovered = el;
-            // snapToBlock climbs out of fragments; expandToPrompt then takes the
-            // whole self-contained block, the same expansion the rules use.
             base = expandToPrompt(snapToBlock(el));
             setTarget(widening ? (parentOf(base) ?? base) : base);
         };
@@ -1021,6 +916,7 @@
         };
 
         const onKey = (event) => {
+            if (!live) return;
             if (event.key === "Escape") {
                 event.preventDefault();
                 stopPicker();
@@ -1038,10 +934,22 @@
         };
 
         // Capture phase, so Reddit's own handlers never see any of this.
-        const swallow = (event) => { event.preventDefault(); event.stopPropagation(); };
+        const swallow = (event) => {
+            if (!live) return;
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        // The way out that needs no keyboard focus.
+        const onContextMenu = (event) => {
+            if (!live) return;
+            swallow(event);
+            stopPicker();
+        };
 
         // Picking stays on until Esc, so a page can be cleaned up in one go.
         const onClick = (event) => {
+            if (!live) return;
             swallow(event);
             const picked = target;
             if (!picked) return;
@@ -1055,8 +963,7 @@
                 id: `custom-${Date.now()}`,
                 path,
                 label: describe(picked),
-                // What this path matched when stored. If it ever matches more,
-                // it has gone ambiguous and must not be applied.
+                // What the path matched when stored, for the ambiguity guard.
                 count: Math.max(1, resolvePath(path).length),
             };
 
@@ -1064,13 +971,9 @@
             settings.customRules = customRules;
             api.storage.local.set({ customRules });
 
-            // Clearing a pick marks its element "keep visible". Picking it again
-            // is an explicit reversal, so drop that marker — otherwise the
-            // element could never be hidden again for the life of the page.
+            // Picking again is an explicit reversal of "keep this visible".
             picked.removeAttribute(KEEP_ATTR);
-            // Record ownership before hiding: hide() reads the mark from here,
-            // and an untagged pick reads as an orphan to the settings handler,
-            // which would restore it the moment the pick is saved.
+            // Ownership before hiding: an untagged pick reads as an orphan and gets restored.
             hiddenBy.set(picked, rule.id);
             hide(picked, "custom");
             counts.custom++;
@@ -1097,21 +1000,25 @@
             ["mousedown", swallow, true],
             ["mouseup", swallow, true],
             ["pointerdown", swallow, true],
+            ["contextmenu", onContextMenu, true],
             ["keydown", onKey, true],
             ["scroll", paint, true],
             ["resize", paint, true],
+            // Nothing should come back to a tab still eating its own clicks.
+            ["pagehide", () => stopPicker(), true],
         ];
         for (const [type, handler, capture] of bindings) {
             window.addEventListener(type, handler, capture);
         }
 
-        picker = { host, bindings, count: () => hiddenHere };
+        picker = { host, bindings, count: () => hiddenHere, end: () => { live = false; } };
         return { ok: true, active: true };
     }
 
     function stopPicker() {
         if (!picker) return { ok: true, active: false };
-        const { host, bindings, count } = picker;
+        const { host, bindings, count, end } = picker;
+        end();   // before anything that could throw: the handlers go inert first
         for (const [type, handler, capture] of bindings) {
             window.removeEventListener(type, handler, capture);
         }
@@ -1135,12 +1042,9 @@
         setTimeout(() => el.remove(), 2000);
     }
 
-    // =====================================================================
-    // Diagnostics
-    // =====================================================================
+    // --- Diagnostics ---
 
-    // Stylesheet and script text lives in the DOM too and reads as gibberish in
-    // a label — fall back to the tag name when that is all there is.
+    // Stylesheet and script text lives in the DOM too and reads as gibberish.
     const looksLikeCode = (text) => /[{};]/.test(text) || /^[:.#@][a-z-]/i.test(text);
 
     function describe(el) {
@@ -1149,8 +1053,7 @@
         return text ? `${el.tagName.toLowerCase()} — “${text}”` : el.tagName.toLowerCase();
     }
 
-    // A rule that rejects something silently cannot be diagnosed from outside.
-    // Debug-only, capped, and once per element, so it never becomes noise.
+    // Debug-only, capped, once per element, so it never becomes noise.
     const noted = new WeakSet();
     let notesLeft = 20;
 
@@ -1183,9 +1086,7 @@
             Object.entries(facts).map(([k, v]) => `  ${k}: ${v}`).join("\n");
     }
 
-    // =====================================================================
-    // Settings, messages, startup
-    // =====================================================================
+    // --- Settings, messages, startup ---
 
     function onSettingsChanged(changes, area) {
         if (area !== "local") return;
@@ -1196,10 +1097,7 @@
             if (newValue === false) restore(key);
         }
 
-        // A removed pick comes back immediately, matched by the rule id recorded
-        // on the element rather than by re-resolving its path — a path can go
-        // stale, which used to leave elements hidden with nothing able to reach
-        // them.
+        // Matched by the id on the element: a stale path used to strand hidden elements.
         if (changes.customRules) {
             const oldIds = (changes.customRules.oldValue ?? []).map((r) => r.id);
             const newIds = new Set((changes.customRules.newValue ?? []).map((r) => r.id));
@@ -1211,9 +1109,7 @@
             for (const el of hiddenMatching((el) => droppedMarks.has(el.getAttribute(MARK_ATTR)))) {
                 unhide(el, { keep: true });
             }
-            // Tagged by a rule that no longer exists, or by an older build.
-            // Restored without `keep`: its provenance is unknown, so the
-            // automatic rules must stay free to act on it.
+            // Unknown provenance, so no `keep` — the rules stay free to act on it.
             for (const el of hiddenMatching((el) => {
                 const mark = el.getAttribute(MARK_ATTR) ?? "";
                 return mark.startsWith("custom") && !knownMarks.has(mark);
@@ -1237,10 +1133,7 @@
                 return Promise.resolve(sweep("popup"));
 
             case "restoreAll": {
-                // Picks only. What a toggle hid is that toggle's business, and
-                // comes back by switching it off — not from here. No `keep`
-                // either: the rules stay in charge of whatever they would have
-                // hidden anyway, since their toggles are still on.
+                // Picks only. What a toggle hid comes back by switching it off.
                 const picked = hiddenMatching((el) =>
                     (el.getAttribute(MARK_ATTR) ?? "").startsWith("custom"));
                 for (const el of picked) unhide(el);
@@ -1273,8 +1166,7 @@
             get settings() { return settings; },
             explain,
             pathFor,
-            // Each strategy on its own, for working out which one should have
-            // caught something: __redditLoginBypass__.find.signature()
+            // Each strategy alone: __redditLoginBypass__.find.signature()
             find: {
                 loginPrompts: findLoginPrompts,
                 peopleAlsoAsk: findPeopleAlsoAsk,
@@ -1284,10 +1176,8 @@
                 topmost: findTopmostOverlay,
                 rail: findRailPrompts,
             },
-            // Every stored pick, as text.
             picks: () => (settings.customRules ?? []).map((rule, i) =>
                 `${i + 1}. ${rule.label}\n   ${rule.path.join("  ▸  ")}`).join("\n") || "(none)",
-            // What is hidden right now, and which rule claimed each one.
             hidden: () => hiddenMatching(() => true).map((el) =>
                 `${el.getAttribute(MARK_ATTR)}  ${describe(el)}`),
         },

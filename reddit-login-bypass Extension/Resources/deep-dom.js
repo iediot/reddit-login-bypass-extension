@@ -1,23 +1,10 @@
-//
-//  deep-dom.js
-//  Shadow-DOM-aware DOM helpers, shared by content.js.
-//
-//  Reddit renders most of its UI inside the shadow roots of <shreddit-*> and
-//  <faceplate-*> custom elements. document.querySelectorAll cannot see into
-//  them, and document.elementsFromPoint retargets its results to the outermost
-//  shadow host, so plain DOM queries miss everything that matters here.
-//
-//  Loaded as a classic content script (no ES modules — manifest-declared
-//  content scripts cannot use import), so it exports through one global.
-//
+// deep-dom.js — shadow-piercing DOM helpers, exported through one global.
 
 (() => {
     "use strict";
 
     const ROOT_CACHE_MS = 1000;
-    // Generous: a long Reddit feed can run past a smaller budget before it
-    // reaches the shadow roots that matter, and anything beyond the budget is
-    // invisible to every rule and to restoring alike.
+    // Generous: what falls outside the budget can never be found or restored.
     const MAX_NODES = 200000;
 
     let rootCache = { at: 0, roots: [] };
@@ -52,7 +39,6 @@
         rootCache = { at: 0, roots: [] };
     }
 
-    // querySelectorAll across every root.
     function deepQueryAll(selector) {
         const out = [];
         for (const root of allRoots()) {
@@ -67,8 +53,7 @@
         return out;
     }
 
-    // The genuinely topmost element at a point: descend through shadow roots
-    // instead of accepting the retargeted host document.elementFromPoint gives.
+    // Descends through shadow roots, which elementFromPoint retargets away from.
     function deepElementFromPoint(x, y) {
         let el = document.elementFromPoint(x, y);
         let guard = 0;
@@ -87,21 +72,17 @@
         return root instanceof ShadowRoot ? root.host : null;
     }
 
-    // Text content including the element's own shadow root.
     function deepText(el, limit = 800) {
         let text = (el.textContent || "").slice(0, limit);
         if (el.shadowRoot) text += " " + (el.shadowRoot.textContent || "").slice(0, limit);
         return text;
     }
 
-    // querySelector that also looks inside this element's shadow root.
     function deepQueryWithin(el, selector) {
         return el.querySelector?.(selector) || el.shadowRoot?.querySelector(selector) || null;
     }
 
-    // Elements whose own text matches — across every root. Reddit's markup
-    // changes constantly but its copy does not, so a distinctive phrase is the
-    // most durable handle there is on a prompt.
+    // Copy outlives markup, so a distinctive phrase is the most durable handle.
     function deepFindText(regex, budget = 40000) {
         const out = [];
         for (const root of allRoots()) {
@@ -124,13 +105,7 @@
         return out;
     }
 
-    // -----------------------------------------------------------------------
-    // Selector paths — how a picked element is remembered across page loads.
-    //
-    // A path is one CSS selector per shadow level, outermost first:
-    //   ["shreddit-app", "faceplate-dialog", "div.prompt > button"]
-    // Each hop is resolved inside the previous hop's shadow root.
-    // -----------------------------------------------------------------------
+    // --- Selector paths: one selector per shadow level, resolved hop by hop ---
 
     // Reddit mixes stable utility classes with hashed ones; keep the readable.
     function stableClasses(el) {
@@ -159,8 +134,7 @@
         return tag + classes + (nth ? `:nth-of-type(${nth})` : "");
     }
 
-    // Build a selector for `el` within `root`, lengthening the ancestor chain
-    // until it is unambiguous.
+    // Lengthens the ancestor chain until the selector is unambiguous.
     function cssPathWithin(el, root) {
         const parts = [];
         let node = el;
@@ -191,8 +165,7 @@
         return hops;
     }
 
-    // Resolve a stored path back to live elements. The last hop may match more
-    // than one element, which is what makes a picked rule reusable.
+    // The last hop may match more than one element, which makes a pick reusable.
     function resolvePath(hops) {
         if (!Array.isArray(hops) || !hops.length) return [];
         let root = document;
