@@ -6,8 +6,10 @@
 
 const api = globalThis.browser ?? globalThis.chrome;
 
-const RULE_IDS = ["loginWall", "sidebarLoginPrompt", "peopleAlsoAsk"];
-const DEFAULTS = { ...Object.fromEntries(RULE_IDS.map((id) => [id, true])), customRules: [] };
+const RULE_IDS = ["loginPrompts", "peopleAlsoAsk"];
+// The two login rules were merged into one; carry the old key forward.
+const LEGACY_TOGGLE_KEY = "loginWall";
+const DEFAULTS = Object.fromEntries(RULE_IDS.map((id) => [id, true]));
 
 const NOT_RUNNING =
     "Not running here — open a Reddit page and allow the extension on reddit.com.";
@@ -54,23 +56,48 @@ async function send(message) {
         lastFailure = String(err?.message ?? err);
         return undefined;
     }
-    result = await ask();
-    if (result === undefined) lastFailure = "injected, but the page did not answer";
+    for (let attempt = 0; attempt < 3; attempt++) {
+        await new Promise((done) => setTimeout(done, 80));
+        result = await ask();
+        if (result !== undefined) return result;
+    }
+    lastFailure = "injected, but the page did not answer";
     return result;
+}
+
+async function activeTabId() {
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
+    return tab?.id;
 }
 
 const unreachable = () =>
     lastFailure ? `Could not reach this page: ${lastFailure}` : UNREACHABLE;
 
 async function load() {
-    const settings = await api.storage.local.get(DEFAULTS);
+    const stored = await api.storage.local.get();
+    const settings = { ...DEFAULTS, ...stored };
+    if (!("loginPrompts" in stored) && LEGACY_TOGGLE_KEY in stored) {
+        settings.loginPrompts = stored[LEGACY_TOGGLE_KEY] !== false;
+    }
 
     for (const id of RULE_IDS) {
         const input = document.getElementById(id);
         input.checked = settings[id] !== false;
-        input.addEventListener("change", () => {
-            api.storage.local.set({ [id]: input.checked });
+        input.addEventListener("change", async () => {
+            await api.storage.local.set({ [id]: input.checked });
             setStatus(input.checked ? "Rule on." : "Rule off — items restored.");
+
+            // A live content script applies this instantly through
+            // storage.onChanged. If none is listening, reload the tab so the
+            // setting takes effect without the user working out why it did not.
+            const applied = await send({ type: "rescan" });
+            if (applied === undefined) {
+                const tabId = await activeTabId();
+                if (tabId) {
+                    setStatus("Applied — reloading the page…");
+                    api.tabs.reload(tabId);
+                }
+            }
         });
     }
 

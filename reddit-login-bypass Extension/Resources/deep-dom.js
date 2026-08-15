@@ -213,7 +213,7 @@
         }
     }
 
-    globalThis.__redditBypassDom = {
+    globalThis.__redditLoginBypassDom = {
         allRoots, invalidateRootCache, deepQueryAll, deepElementFromPoint,
         parentOf, deepText, deepQueryWithin, deepFindText, pathFor, resolvePath,
     };
