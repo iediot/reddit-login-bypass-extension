@@ -4,7 +4,7 @@
 
 # Reddit Login Bypass
 
-**A Safari extension that clears Reddit's unwanted web elements
+**A Safari extension that clears Reddit's unwanted web elements**
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-sqircle&logo=javascript&logoColor=black)
 ![Safari](https://img.shields.io/badge/Safari-006CFF?style=flat-sqircle&logo=safari&logoColor=white)
