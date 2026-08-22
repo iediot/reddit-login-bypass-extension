@@ -9,6 +9,7 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-sqircle&logo=javascript&logoColor=black)
 ![Safari](https://img.shields.io/badge/Safari-006CFF?style=flat-sqircle&logo=safari&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-000000?style=flat-sqircle&logo=apple&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS-000000?style=flat-sqircle&logo=apple&logoColor=white)
 
 </div>
 
@@ -36,8 +37,10 @@ signing in.
 
 Anything a rule misses can be pointed at directly: **Pick element** highlights whatever is under
 the cursor, `⇧`/`↑` and `↓` widen and narrow the selection, `⌥` reaches behind whatever is on
-top, and a click hides it on every later visit. Picking stays on until `Esc`, and `⌃⇧H` toggles
-it without the popup. Same idea as Safari's own Hide Distracting Items, and the escape hatch for
+top, and a click hides it on every later visit. Picking stays on until `Esc` or a right-click,
+and `⌃⇧H` toggles it without the popup. On touch there is no hover, no right-click and no
+keyboard, so the same moves become a control bar: tap to select, then **Wider**, **Narrower**,
+**Hide**, **Done**. Same idea as Safari's own Hide Distracting Items, and the escape hatch for
 whatever Reddit ships next.
 
 ## How it works
@@ -88,3 +91,23 @@ Picks are stored as a **selector path**, one selector per shadow level, resolved
 Hashed class names are filtered out so a path survives a rebuild, and each path records how many
 elements it matched when it was stored — if it ever matches more, it has gone ambiguous and is
 refused rather than hiding a whole class of elements.
+
+## Mac and iPhone
+
+Four targets, two products, one copy of the extension. `reddit-login-bypass Extension/Resources/`
+is the whole extension — manifest, content scripts, popup — and both the macOS and the iOS
+extension targets build from that same folder, so there is nothing to keep in sync.
+
+| Target | Product |
+|---|---|
+| `reddit-login-bypass` / `reddit-login-bypass Extension` | macOS app + `.appex` |
+| `reddit-login-bypass iOS` / `reddit-login-bypass iOS Extension` | iOS app + `.appex` |
+
+The container apps do nothing but tell you how to switch the extension on — that is simply how
+Safari extensions are distributed. On macOS the app can read whether the extension is enabled and
+open Safari's settings for you; iOS has no API for either, so its app only shows the steps.
+
+**iOS has no unsigned path.** macOS has *Allow Unsigned Extensions*, which is what makes the
+`.app.zip` in Releases work. iOS has no equivalent, so the iOS build has to be signed: sideloaded
+from Xcode with a free Apple ID (re-signed every 7 days), or shipped through TestFlight or the
+App Store with a paid Developer Program membership.

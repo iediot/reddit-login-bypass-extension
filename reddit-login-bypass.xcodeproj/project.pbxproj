@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		465D2542302FA4460007C0A6 /* reddit-login-bypass Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 465D2541302FA4460007C0A6 /* reddit-login-bypass Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1105A00000000000000A007 /* reddit-login-bypass iOS Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1105B00000000000000B002 /* reddit-login-bypass iOS Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -17,6 +18,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 465D2540302FA4460007C0A6;
 			remoteInfo = "reddit-login-bypass Extension";
+		};
+		A1105A00000000000000A008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 465D251F302FA4450007C0A6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1105B00000000000000B001;
+			remoteInfo = "reddit-login-bypass iOS Extension";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -32,11 +40,24 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1105A00000000000000A006 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1105A00000000000000A007 /* reddit-login-bypass iOS Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		465D2527302FA4450007C0A6 /* reddit-login-bypass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "reddit-login-bypass.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		465D2541302FA4460007C0A6 /* reddit-login-bypass Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "reddit-login-bypass Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1105A00000000000000A002 /* reddit-login-bypass iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "reddit-login-bypass iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1105B00000000000000B002 /* reddit-login-bypass iOS Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "reddit-login-bypass iOS Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -46,6 +67,13 @@
 				Info.plist,
 			);
 			target = 465D2540302FA4460007C0A6 /* reddit-login-bypass Extension */;
+		};
+		A1105B00000000000000B006 /* Exceptions for "reddit-login-bypass Extension" folder in "reddit-login-bypass iOS Extension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A1105B00000000000000B001 /* reddit-login-bypass iOS Extension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -59,12 +87,18 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				465D255A302FA4460007C0A6 /* Exceptions for "reddit-login-bypass Extension" folder in "reddit-login-bypass Extension" target */,
+				A1105B00000000000000B006 /* Exceptions for "reddit-login-bypass Extension" folder in "reddit-login-bypass iOS Extension" target */,
 			);
 			explicitFolders = (
 				Resources/_locales,
 				Resources/images,
 			);
 			path = "reddit-login-bypass Extension";
+			sourceTree = "<group>";
+		};
+		A1105A00000000000000A00A /* reddit-login-bypass iOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "reddit-login-bypass iOS";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -84,6 +118,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1105A00000000000000A004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1105B00000000000000B004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -92,6 +140,7 @@
 			children = (
 				465D2529302FA4450007C0A6 /* reddit-login-bypass */,
 				465D2545302FA4460007C0A6 /* reddit-login-bypass Extension */,
+				A1105A00000000000000A00A /* reddit-login-bypass iOS */,
 				465D2528302FA4450007C0A6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,6 +150,8 @@
 			children = (
 				465D2527302FA4450007C0A6 /* reddit-login-bypass.app */,
 				465D2541302FA4460007C0A6 /* reddit-login-bypass Extension.appex */,
+				A1105A00000000000000A002 /* reddit-login-bypass iOS.app */,
+				A1105B00000000000000B002 /* reddit-login-bypass iOS Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -154,6 +205,52 @@
 			productReference = 465D2541302FA4460007C0A6 /* reddit-login-bypass Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		A1105A00000000000000A001 /* reddit-login-bypass iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1105A00000000000000A00B /* Build configuration list for PBXNativeTarget "reddit-login-bypass iOS" */;
+			buildPhases = (
+				A1105A00000000000000A003 /* Sources */,
+				A1105A00000000000000A004 /* Frameworks */,
+				A1105A00000000000000A005 /* Resources */,
+				A1105A00000000000000A006 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1105A00000000000000A009 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1105A00000000000000A00A /* reddit-login-bypass iOS */,
+			);
+			name = "reddit-login-bypass iOS";
+			packageProductDependencies = (
+			);
+			productName = "reddit-login-bypass iOS";
+			productReference = A1105A00000000000000A002 /* reddit-login-bypass iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1105B00000000000000B001 /* reddit-login-bypass iOS Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1105B00000000000000B007 /* Build configuration list for PBXNativeTarget "reddit-login-bypass iOS Extension" */;
+			buildPhases = (
+				A1105B00000000000000B003 /* Sources */,
+				A1105B00000000000000B004 /* Frameworks */,
+				A1105B00000000000000B005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				465D2545302FA4460007C0A6 /* reddit-login-bypass Extension */,
+			);
+			name = "reddit-login-bypass iOS Extension";
+			packageProductDependencies = (
+			);
+			productName = "reddit-login-bypass iOS Extension";
+			productReference = A1105B00000000000000B002 /* reddit-login-bypass iOS Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -168,6 +265,12 @@
 						CreatedOnToolsVersion = 26.6;
 					};
 					465D2540302FA4460007C0A6 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					A1105A00000000000000A001 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					A1105B00000000000000B001 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -188,6 +291,8 @@
 			targets = (
 				465D2526302FA4450007C0A6 /* reddit-login-bypass */,
 				465D2540302FA4460007C0A6 /* reddit-login-bypass Extension */,
+				A1105A00000000000000A001 /* reddit-login-bypass iOS */,
+				A1105B00000000000000B001 /* reddit-login-bypass iOS Extension */,
 			);
 		};
 /* End PBXProject section */
@@ -201,6 +306,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		465D253F302FA4460007C0A6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1105A00000000000000A005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1105B00000000000000B005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -224,6 +343,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1105A00000000000000A003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1105B00000000000000B003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -231,6 +364,11 @@
 			isa = PBXTargetDependency;
 			target = 465D2540302FA4460007C0A6 /* reddit-login-bypass Extension */;
 			targetProxy = 465D2543302FA4460007C0A6 /* PBXContainerItemProxy */;
+		};
+		A1105A00000000000000A009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1105B00000000000000B001 /* reddit-login-bypass iOS Extension */;
+			targetProxy = A1105A00000000000000A008 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -507,6 +645,140 @@
 			};
 			name = Release;
 		};
+		A1105A00000000000000A00C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 83DB5W93C4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Reddit Login Bypass";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "iediot.reddit-login-bypass";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1105A00000000000000A00D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 83DB5W93C4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Reddit Login Bypass";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "iediot.reddit-login-bypass";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1105B00000000000000B008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 83DB5W93C4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "reddit-login-bypass Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Reddit Login Bypass";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.1;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "iediot.reddit-login-bypass.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1105B00000000000000B009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 83DB5W93C4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "reddit-login-bypass Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Reddit Login Bypass";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.1;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "iediot.reddit-login-bypass.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -533,6 +805,24 @@
 			buildConfigurations = (
 				465D2562302FA4460007C0A6 /* Debug */,
 				465D2563302FA4460007C0A6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1105A00000000000000A00B /* Build configuration list for PBXNativeTarget "reddit-login-bypass iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1105A00000000000000A00C /* Debug */,
+				A1105A00000000000000A00D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1105B00000000000000B007 /* Build configuration list for PBXNativeTarget "reddit-login-bypass iOS Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1105B00000000000000B008 /* Debug */,
+				A1105B00000000000000B009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

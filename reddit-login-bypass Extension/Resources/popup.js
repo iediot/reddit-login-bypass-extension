@@ -165,4 +165,9 @@ document.getElementById("restoreAll").addEventListener("click", async () => {
     }
 });
 
+// Touch has no Esc and no ⌃⇧H; the picker shows its own Done button instead.
+if (matchMedia("(hover: none) and (pointer: coarse)").matches) {
+    document.querySelector(".hotkey").textContent = "Picking stays on until you tap Done.";
+}
+
 load();

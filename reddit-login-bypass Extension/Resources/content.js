@@ -10,7 +10,7 @@
     const LOG_PREFIX = "[reddit-login-bypass]";
 
     // Bumped with the rules, so a newer injection can take over a stale tab.
-    const VERSION = 24;
+    const VERSION = 25;
 
     if (!dom) return console.error(LOG_PREFIX, "deep-dom.js did not load");
 
@@ -756,6 +756,9 @@
 
     let picker = null;
 
+    // Touch has no hover, right-click or keyboard: it gets a control bar.
+    const TOUCH = matchMedia("(hover: none) and (pointer: coarse)").matches;
+
     // CSSOM, not a stylesheet: Reddit's CSP can refuse a <style> we add.
     const PICKER_STYLES = {
         // The reset undoes the UA styles a popover carries.
@@ -770,10 +773,18 @@
               "background:#1c1c1e;color:#fff;font:500 13px/1.4 system-ui,-apple-system,sans-serif;" +
               "padding:8px 14px;border-radius:999px;pointer-events:none;white-space:nowrap;" +
               "box-shadow:0 4px 16px rgba(0,0,0,0.4);",
+        // The one part of the overlay that takes taps.
+        controls: "position:fixed;left:50%;bottom:20px;top:auto;right:auto;transform:translateX(-50%);" +
+                  "margin:0;padding:0;width:auto;height:auto;max-width:none;border:0;" +
+                  "background:transparent;display:flex;gap:8px;pointer-events:auto;",
+        button: "font:600 14px/1 system-ui,-apple-system,sans-serif;color:#fff;background:#1c1c1e;" +
+                "border:0;border-radius:999px;padding:12px 16px;-webkit-appearance:none;" +
+                "touch-action:manipulation;box-shadow:0 4px 16px rgba(0,0,0,0.4);",
     };
 
-    const HINT_TEXT =
-        "Click to hide  ·  ⇧ or ↑ wider  ·  ↓ narrower  ·  ⌥ reach behind  ·  Esc to finish";
+    const HINT_TEXT = TOUCH
+        ? "Tap what you want gone, then Hide"
+        : "Click to hide  ·  ⇧ or ↑ wider  ·  ↓ narrower  ·  ⌥ reach behind  ·  Esc to finish";
 
     // A manual popover joins the top layer without making the page inert.
     function raiseToTopLayer(el) {
@@ -875,8 +886,8 @@
             if (!target) { hint.textContent = HINT_TEXT; return; }
             const rect = effectiveRect(target);
             hint.textContent = `${describe(target).slice(0, 44)}  ·  ` +
-                `${Math.round(rect.width)}×${Math.round(rect.height)}  ·  ` +
-                "↑ wider  ↓ narrower  ·  Esc to finish";
+                `${Math.round(rect.width)}×${Math.round(rect.height)}` +
+                (TOUCH ? "" : "  ·  ↑ wider  ↓ narrower  ·  Esc to finish");
         };
 
         // ⌥ reaches past a full-viewport overlay, which the hit test returns everywhere.
@@ -947,14 +958,12 @@
             stopPicker();
         };
 
-        // Picking stays on until Esc, so a page can be cleaned up in one go.
-        const onClick = (event) => {
-            if (!live) return;
-            swallow(event);
+        // Shared by a click and by the touch control bar's Hide button.
+        const hidePicked = () => {
             const picked = target;
             if (!picked) return;
             if (containsPageContent(picked)) {
-                hint.textContent = "That block contains the page itself — press ↓ for something smaller";
+                hint.textContent = "That block contains the page itself — take something smaller";
                 return;
             }
 
@@ -994,19 +1003,74 @@
             paint();
         };
 
+        // Picking stays on until Esc, so a page can be cleaned up in one go.
+        const onClick = (event) => {
+            if (!live) return;
+            if (host.contains(event.target)) return;   // the control bar's buttons
+            swallow(event);
+            // On touch a tap only selects, so Hide can be reconsidered first.
+            if (!TOUCH) hidePicked();
+        };
+
+        // No preventDefault: the page still has to scroll while picking.
+        const onTouch = (event) => {
+            if (!live) return;
+            const touch = event.touches[0];
+            if (!touch) return;
+            const el = pointTarget(touch.clientX, touch.clientY, false);
+            if (!el || host.contains(el)) return;
+            hovered = el;
+            base = expandToPrompt(snapToBlock(el));
+            setTarget(base);
+        };
+
+        const widen = () => {
+            const parent = target && parentOf(target);
+            if (parent && parent !== document.body && parent !== document.documentElement) setTarget(parent);
+        };
+
+        const narrow = () => {
+            const child = childTowardsHover();
+            if (child) setTarget(child);
+        };
+
+        if (TOUCH) {
+            hint.style.bottom = "78px";
+            const controls = document.createElement("div");
+            controls.style.cssText = PICKER_STYLES.controls;
+            for (const [label, action] of [["Wider", widen], ["Narrower", narrow],
+                                           ["Hide", hidePicked], ["Done", () => stopPicker()]]) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.textContent = label;
+                button.style.cssText = PICKER_STYLES.button;
+                button.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    action();
+                });
+                controls.append(button);
+            }
+            host.append(controls);
+        }
+
         const bindings = [
-            ["mousemove", onMove, true],
             ["click", onClick, true],
-            ["mousedown", swallow, true],
-            ["mouseup", swallow, true],
-            ["pointerdown", swallow, true],
-            ["contextmenu", onContextMenu, true],
             ["keydown", onKey, true],
             ["scroll", paint, true],
             ["resize", paint, true],
             // Nothing should come back to a tab still eating its own clicks.
             ["pagehide", () => stopPicker(), true],
         ];
+
+        // On touch, swallowing mousedown would stop the page scrolling too.
+        bindings.push(...(TOUCH
+            ? [["touchstart", onTouch, true]]
+            : [["mousemove", onMove, true],
+               ["mousedown", swallow, true],
+               ["mouseup", swallow, true],
+               ["pointerdown", swallow, true],
+               ["contextmenu", onContextMenu, true]]));
         for (const [type, handler, capture] of bindings) {
             window.addEventListener(type, handler, capture);
         }

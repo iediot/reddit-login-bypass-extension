@@ -4,7 +4,7 @@
         "description": "The display name for the extension."
     },
     "extension_description": {
-        "message": "Hides Reddit's login wall automatically, plus optional clean-ups for the sidebar login prompt and the \"People also ask about\" block.",
+        "message": "Hides Reddit's login prompts automatically — the wall over the page and the panel beside it — plus the \"People also ask about\" block.",
         "description": "Description of what the extension does."
     },
     "action_title": {
